@@ -1,26 +1,28 @@
+# Stage 1: Build the React app
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# Copy ONLY package.json first (no lockfile required)
+COPY package.json ./
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci
+# Install dependencies (npm install will generate its own lockfile)
+RUN npm install --silent
 
-# Install additional Tailwind-related dependencies
+# Add your extra dependencies
 RUN npm install tailwind-variants clsx tailwind-merge @remixicon/react
 
+# Copy the rest of the app
 COPY . .
 
+# Build the app
 RUN npm run build
 
+# Stage 2: Production server
 FROM nginx:alpine
 
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Copy custom Nginx config (optional)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "run", "--host=0.0.0.0", "--port=80", "daemon off;"]
