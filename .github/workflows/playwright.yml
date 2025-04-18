@@ -6,6 +6,8 @@ on:
     branches: [ main ]
 jobs:
   test:
+    needs: build
+
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +46,7 @@ jobs:
       run: docker push ${{secrets.REGISTRY_USERNAME}}/playwright-image:${{github.run_number}}
 
   deploy:
-    needs: build
+    needs: test
 
     runs-on: ubuntu-latest
 
