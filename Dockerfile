@@ -1,27 +1,32 @@
-# Stage 1: Build the React app
+# Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy ONLY package.json first (no lockfile required)
-COPY package.json ./
+# 1. Copy critical files first (better caching)
+COPY package.json .
+COPY package-lock.json* .
+COPY vite.config.ts .
+COPY tailwind.config.js .
+COPY postcss.config.js .
+COPY tsconfig.json .
+COPY index.html .
 
-# Install dependencies (npm install will generate its own lockfile)
-RUN npm install --silent
+# 2. Install dependencies
+RUN npm install --legacy-peer-deps
+RUN npm install -D typescript  # Explicitly install TS
 
-# Add your extra dependencies
-RUN npm install tailwind-variants clsx tailwind-merge @remixicon/react
+# 3. Copy remaining files
+COPY public ./public
+COPY src ./src
 
-# Copy the rest of the app
-COPY . .
-
-# Build the app
+# 4. Build (Vite handles TS compilation)
 RUN npm run build
 
-# Stage 2: Production server
+# Stage 2: Production
 FROM nginx:alpine
 
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
